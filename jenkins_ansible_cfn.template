@@ -1,0 +1,112 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "AWS CloudFormation Sample",
+
+  "Parameters" : {
+
+    "KeyName": {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription" : "must be the name of an existing EC2 KeyPair."
+    },
+
+    "InstanceType" : {
+      "Description" : "WebServer EC2 instance type",
+      "Type" : "String",
+      "Default" : "t2.small",
+      "AllowedValues" : [ "t1.micro", "t2.nano", "t2.micro", "t2.small", "t2.medium", "t2.large", "m1.small", "m1.medium", "m1.large", "m1.xlarge", "m2.xlarge", "m2.2xlarge", "m2.4xlarge", "m3.medium", "m3.large", "m3.xlarge", "m3.2xlarge", "m4.large", "m4.xlarge", "m4.2xlarge", "m4.4xlarge", "m4.10xlarge", "c1.medium", "c1.xlarge", "c3.large", "c3.xlarge", "c3.2xlarge", "c3.4xlarge", "c3.8xlarge", "c4.large", "c4.xlarge", "c4.2xlarge", "c4.4xlarge", "c4.8xlarge", "g2.2xlarge", "g2.8xlarge", "r3.large", "r3.xlarge", "r3.2xlarge", "r3.4xlarge", "r3.8xlarge", "i2.xlarge", "i2.2xlarge", "i2.4xlarge", "i2.8xlarge", "d2.xlarge", "d2.2xlarge", "d2.4xlarge", "d2.8xlarge", "hi1.4xlarge", "hs1.8xlarge", "cr1.8xlarge", "cc2.8xlarge", "cg1.4xlarge"]
+,
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+
+    "ImageId" : {
+      "Default" : "ID of the VM",
+      "Description" : "AMI id of the VM",
+      "Type" : "String"
+    },
+
+	"SecurityGroupID" : {
+      "Description" : "ID of the existing SecurityGroup",
+      "Type" : "List<AWS::EC2::SecurityGroup::Id>",
+      "ConstraintDescription" : "must be a valid SecurityGroup ID."
+    },
+
+    "VpcId" : {
+      "Type" : "AWS::EC2::VPC::Id",
+      "Description" : "VpcId of your existing Virtual Private Cloud (VPC)",
+      "ConstraintDescription" : "must be the VPC Id of an existing Virtual Private Cloud."
+    },
+
+    "SubnetId1" : {
+      "Type" : "AWS::EC2::Subnet::Id",
+      "Description" : "SubnetId1 of an existing subnet (for the primary network) in your Virtual Private Cloud (VPC)",
+      "ConstraintDescription" : "must be an existing subnet in the selected Virtual Private Cloud."
+    }
+  },
+  "Resources" : {
+     "publicip" : {
+      "Type" : "AWS::EC2::EIP",
+      "Properties" : {
+        "Domain" : "vpc"
+      }
+    },
+	
+    "publicipassociate" : {
+      "Type" : "AWS::EC2::EIPAssociation",
+      "Properties" : {
+        "AllocationId" : { "Fn::GetAtt" : [ "publicip", "AllocationId" ]},
+        "NetworkInterfaceId" : { "Ref" : "publiceni" }
+      }
+    },
+    "publiceni" : {
+      "Type" : "AWS::EC2::NetworkInterface",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "SubnetId1" },
+        "Description" :"Interface for control traffic such as SSH",
+        "GroupSet" : { "Ref" : "SecurityGroupID" },
+        "SourceDestCheck" : "true"
+      }
+    },
+	"privateeni" : {
+      "Type" : "AWS::EC2::NetworkInterface",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "SubnetId1" },
+        "Description" :"Interface for control traffic such as SSH",
+        "GroupSet" : { "Ref" : "SecurityGroupID" },
+        "SourceDestCheck" : "true"
+      }
+    },
+    "Ec2Instance" : {
+      "Type" : "AWS::EC2::Instance",
+      "Properties" : {
+        
+	"ImageId" : { "Ref" : "ImageId" },
+        
+	"KeyName" : { "Ref" : "KeyName" },
+  
+	"InstanceType": { "Ref" : "InstanceType" },  
+        "NetworkInterfaces" : [ { "NetworkInterfaceId" : {"Ref" : "publiceni"}, "DeviceIndex" : "0" },
+								{ "NetworkInterfaceId" : {"Ref" : "privateeni"}, "DeviceIndex" : "1" }],
+        "UserData" : {"Fn::Base64" : { "Fn::Join" : ["",[
+                   "#!/bin/bash -v\n",
+				   "echo \"127.0.0.1 $(hostname)\" >> /etc/hosts\n",
+				   "apt-get install -y python-software-properties debconf-utils\n",
+				   "add-apt-repository -y ppa:webupd8team/java\n",
+				   "sudo apt-get update\n",
+				   "echo \"oracle-java8-installer shared/accepted-oracle-license-v1-1 select true\" | sudo debconf-set-selections\n",
+				   "apt-get install -y oracle-java8-installer\n",
+				   "wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key | sudo apt-key add -\n",
+				   "deb https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list\n",
+				   "apt-get update\n",
+				   "apt-get install jenkins\n",
+				   "apt-add-repository -y  ppa:ansible/ansible\n",
+				   "sudo apt-get update\n",
+				   "sudo apt-get install ansible\n"
+			]]}
+		}
+	  }
+    }
+   
+ }
+}
