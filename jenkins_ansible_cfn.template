@@ -97,12 +97,12 @@
 				   "echo \"oracle-java8-installer shared/accepted-oracle-license-v1-1 select true\" | sudo debconf-set-selections\n",
 				   "apt-get install -y oracle-java8-installer\n",
 				   "wget -q -O - https://pkg.jenkins.io/debian/jenkins-ci.org.key | sudo apt-key add -\n",
-				   "deb https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list\n",
+				   "echo deb https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list\n",
 				   "apt-get update\n",
-				   "apt-get install jenkins\n",
+				   "apt-get install -y jenkins\n",
 				   "apt-add-repository -y  ppa:ansible/ansible\n",
 				   "sudo apt-get update\n",
-				   "sudo apt-get install ansible\n"
+				   "sudo apt-get install -y ansible\n"
 			]]}
 		}
 	  }
